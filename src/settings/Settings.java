@@ -15,10 +15,10 @@ import javax.swing.JPanel;
 public class Settings extends JFrame implements ActionListener {
 
     public JComboBox objectSettings, lightSettings, textureSettings, mappingSettings;
-    public JCheckBox wireframeDisplay, testureDisplay;
+    public JCheckBox wireframeDisplay, testureDisplay, attenuationEnable, reflectorEnable, lightInCamEnable;
     
     private int lightS, objectS, textureS, mappingS;
-    private boolean wireframeS, textureEnabledS;
+    private boolean wireframeS, textureEnabledS, attenuationS, reflectorS, lightInCamS;
     
     public Settings() {
         createSettings();
@@ -62,7 +62,7 @@ public class Settings extends JFrame implements ActionListener {
                 
         add(texturePanel);
         
-        String[] mappings = { "Disabled mapping", "Normal mapping", "Paralax mapping" };
+        String[] mappings = { "Disabled mapping", "Normal mapping (per pixel)", "Paralax mapping (per pixel)" };
         
         JPanel mappingPanel = new JPanel();
 		mappingSettings = new JComboBox(mappings);
@@ -93,6 +93,21 @@ public class Settings extends JFrame implements ActionListener {
 		testureDisplay.setSelected(false);
                 testureDisplay.addActionListener(this);
         add(testureDisplay);
+        
+        attenuationEnable = new JCheckBox("Light - Use attenuation? ");
+		attenuationEnable.setSelected(false);
+                attenuationEnable.addActionListener(this);
+        add(attenuationEnable);
+        
+        reflectorEnable = new JCheckBox("Light - Is reflector? (broken) ");
+		reflectorEnable.setSelected(false);
+                reflectorEnable.addActionListener(this);
+        add(reflectorEnable);
+        
+        lightInCamEnable = new JCheckBox("Light - Is in cam? ");
+		lightInCamEnable.setSelected(false);
+                lightInCamEnable.addActionListener(this);
+        add(lightInCamEnable);
     }
     
     @Override
@@ -104,6 +119,9 @@ public class Settings extends JFrame implements ActionListener {
         
         setWireframeS(wireframeDisplay.isSelected());
         setTextureEnabledS(testureDisplay.isSelected());
+        setAttenuationS(attenuationEnable.isSelected());
+        setReflectorS(reflectorEnable.isSelected());
+        setLightInCamS(lightInCamEnable.isSelected());
     }
     
     public int getLightS() {
@@ -152,6 +170,30 @@ public class Settings extends JFrame implements ActionListener {
 
     public void setTextureEnabledS(boolean textureEnabledS) {
         this.textureEnabledS = textureEnabledS;
+    }
+    
+    public boolean isAttenuationS() {
+        return attenuationS;
+    }
+
+    public void setAttenuationS(boolean attenuationS) {
+        this.attenuationS = attenuationS;
+    }
+
+    public boolean isReflectorS() {
+        return reflectorS;
+    }
+
+    public void setReflectorS(boolean reflectorS) {
+        this.reflectorS = reflectorS;
+    }
+
+    public boolean isLightInCamS() {
+        return lightInCamS;
+    }
+    
+    public void setLightInCamS(boolean lightInCamS) {
+        this.lightInCamS = lightInCamS;
     }
     
 }

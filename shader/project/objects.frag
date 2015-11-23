@@ -5,6 +5,7 @@ in vec3 lightDirection;
 in vec3 viewDirection;
 in vec2 vecPosition;
 in float distance;
+in vec3 position;
 
 out vec4 outColor;
 
@@ -18,6 +19,10 @@ uniform sampler2D texture_h;
 uniform int settingsLight;
 uniform float ambient;
 uniform vec3 attenuation;
+uniform int attenuationEn;
+uniform int reflectorEn;
+uniform float spotCutOff; 
+uniform vec3 spotDirection;
 
 /* Mapping */
 uniform int mapping;
@@ -37,6 +42,10 @@ void main() {
                 float height = texture2D(texture_h, texCoord).r;
                 height = height * 0.04 - 0.02;
                 texCoord = texCoord + (viewDirection.xy * height).yx;
+                vec2 texUV =texCoord + viewDirection.xy * height;
+
+                vec3 bump = texture2D(texture_n, texUV).rgb * 2.0 - 1.0;
+                normal_comp = normalize(bump);
             }
         }
         
@@ -79,6 +88,10 @@ void main() {
             // Attenuation
             float att=1.0/(attenuation.x + attenuation.y*distance + attenuation.z*distance*distance); 
 
+            if(attenuationEn == 0) {
+                att = 1;
+            }
+
             vec3 fragmentColor = tempColor * att * (min(ambient + diffusion,1)) + vec3(1,1,1) * specular;
             outColor=vec4(fragmentColor,1.0);
 
@@ -86,5 +99,6 @@ void main() {
 
             /* Default testing colors */
             outColor = vec4(vertColor, 1.0); 
-        }
+        }  
+
 } 

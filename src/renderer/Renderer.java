@@ -24,15 +24,18 @@ public class Renderer implements GLEventListener, MouseListener,
 		MouseMotionListener, KeyListener {
 
 	int width, height, ox, oy;
-	int shaderProgram, objectS, textureS, locMat, settingsLight, lightPos, eyePos, ambient, mapping, attenuation;
+	int shaderProgram, objectS, textureS, locMat, settingsLight, lightPos, eyePos, ambient, mapping, attenuation, attenuationEn, reflectorEn, spotCutOff, spotDirection;
 
+        float lSpotCutoff = 45;
+        
 	Camera cam = new Camera();
-        Vec3D lightPosVec = new Vec3D(5, 5, 2.5);
+        Vec3D lightPosVec = new Vec3D(8, 8, 4);
         Vec3D attenuationVec = new Vec3D(0.5, 0.5, 0.5);
+        Vec3D spotDirectionVec = new Vec3D(0, 0, -1.0);
+        
         GeomGenerator gen;
         OGLBuffers grid;
 	Mat4 proj;
-        
         Settings s;
         
         OGLTexture textureB, textureE, textureB_H, textureB_N, textureE_H, textureE_N;
@@ -42,8 +45,7 @@ public class Renderer implements GLEventListener, MouseListener,
         }
         
         // TODO: reflektor blin-phong 
-        // TODO: blinn-phong per pixel opravit.. (přesvěcuje)
-        // TODO: normal mapping + paralax mapping - nefunguje dobře (opravit)
+        // TODO: mapping per vertex is making some crazy stuff
         
 	public void init(GLAutoDrawable glDrawable) {
 		GL2 gl = glDrawable.getGL().getGL2();
@@ -72,6 +74,10 @@ public class Renderer implements GLEventListener, MouseListener,
 		eyePos = gl.glGetUniformLocation(shaderProgram,"eyePos");
                 ambient = gl.glGetUniformLocation(shaderProgram, "ambient");
                 attenuation = gl.glGetUniformLocation(shaderProgram, "attenuation");
+                attenuationEn = gl.glGetUniformLocation(shaderProgram, "attenuationEn");
+                reflectorEn = gl.glGetUniformLocation(shaderProgram, "reflectorEn");
+                spotCutOff = gl.glGetUniformLocation(shaderProgram, "spotCutOff");
+                spotDirection = gl.glGetUniformLocation(shaderProgram, "spotDirectionOC");
                 
                 /* Textures */
                 textureS = gl.glGetUniformLocation(shaderProgram,"textureS");
@@ -147,7 +153,27 @@ public class Renderer implements GLEventListener, MouseListener,
                     gl.glPolygonMode(GL2.GL_FRONT_AND_BACK, GL2.GL_FILL);
                 }
                 
+                /* Use attenuation or not? */
+                if(s.isAttenuationS()) {
+                    gl.glUniform1i(attenuationEn, 1);
+                } else {
+                    gl.glUniform1i(attenuationEn, 0);
+                }              
                 gl.glUniform3fv(attenuation, 1, ToFloatArray.convert(attenuationVec), 0);
+                
+                /* Is light refletor or not? */
+                if(s.isReflectorS()) {
+                    gl.glUniform1i(reflectorEn, 1);
+                } else {
+                    gl.glUniform1i(reflectorEn, 0);
+                }  
+                gl.glUniform1f(spotCutOff, lSpotCutoff);
+                gl.glUniform3fv(spotDirection, 1, ToFloatArray.convert(spotDirectionVec), 0);
+                
+                /* Is light in cam or not? */
+                if(s.isLightInCamS()) {
+                    gl.glUniform3fv(lightPos, 1, ToFloatArray.convert(cam.getEye()), 0);
+                } 
                 
                 /* Normal or paralax mapping */
                 gl.glUniform1i(mapping, s.getMappingS()); 

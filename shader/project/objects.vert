@@ -7,19 +7,27 @@ out vec3 lightDirection;
 out vec3 viewDirection;
 out vec2 vecPosition;
 out float distance;
+out vec3 position;
 
 uniform int objectS;
 uniform mat4 mat;
 
 /* Texture settings */
 uniform int textureS;
+uniform sampler2D texture;
+uniform sampler2D texture_n;
+uniform sampler2D texture_h;
 
 /* Blinn-Phong settings */
 uniform int settingsLight;
 uniform vec3 lightPos;
 uniform vec3 eyePos;
 uniform float ambient;
+uniform int attenuationEn;
 uniform vec3 attenuation;
+uniform int reflectorEn;
+uniform float spotCutOff; 
+uniform vec3 spotDirection;
 
 /* Mapping */
 uniform int mapping;
@@ -237,14 +245,15 @@ vec3 generatePosition(vec2 inPosition) {
     return position;
 }
 
-mat3 paramTangent(vec2 inPos){
-        vec3 tx = (generatePosition(inPosition + vec2(delta,0)) - generatePosition(inPosition - vec2(delta,0)))/2.0/delta;
-	vec3 ty = (generatePosition(inPosition + vec2(0,delta)) - generatePosition(inPosition - vec2(0,delta)))/2.0/delta;
-	tx= normalize(tx);
-	ty = normalize(ty);
-	vec3 tz = cross(tx,ty);
-	ty = cross(tz,tx);
-	return mat3(tx,ty,tz);
+mat3 computeTBN(vec2 inPos){
+        vec3 dzdu = (generatePosition(inPosition + vec2(delta,0)) - generatePosition(inPosition - vec2(delta,0)))/2.0/delta;
+	vec3 dzdv = (generatePosition(inPosition + vec2(0,delta)) - generatePosition(inPosition - vec2(0,delta)))/2.0/delta;
+	
+        vec3 tangent = normalize(dzdu);
+	vec3 binormal = normalize(dzdv);
+	vec3 normal = cross(tangent,binormal);
+	binormal = cross(normal,tangent);
+	return mat3(tangent,binormal,normal);
 }
 
 void main() { 
@@ -262,20 +271,63 @@ void main() {
 	viewDirection = normalize(eyePos - position);
 
         distance=length(lightDirection);
+        
+        mat3 TBN = computeTBN(vecPosition);
+        
+        vec2 texCoord = vecPosition;
+        /* Change mapping (normal or paralax) */
+        if (textureS == 1){
+            if(mapping == 1){           
+                /* Normal mapping */
+                viewDirection = TBN * viewDirection;
+                lightDirection = TBN * lightDirection;
+            }
+        }
+
+        vec3 normal_comp = normal;
+        if (textureS == 1){
+            if(mapping == 1){           
+                /* Normal mapping */
+                vec3 bump = texture2D(texture_n, texCoord).rgb * 2.0 - 1.0;
+                normal_comp = normalize(bump);
+            } else if(mapping == 2) {
+                /* Parallax mapping */		
+                float height = texture2D(texture_h, texCoord).r;
+                height = height * 0.04 - 0.02;
+                texCoord = texCoord + (viewDirection.xy * height).yx;
+                vec2 texUV = texCoord + viewDirection.xy * height;
+
+                vec3 bump = texture2D(texture_n, texUV).rgb * 2.0 - 1.0;
+                normal_comp = normalize(bump);
+            }
+        }
 
         if (settingsLight == 1) {
             vec3 halfVec = normalize(viewDirection + lightDirection);
 
-            float diffusion = max(dot(lightDirection, normal), 0.0);
-            float specular = max(0, dot(normal, halfVec));
+            float diffusion = max(dot(normal_comp, lightDirection), 0.0);
+            float specular = max(0, dot(normal_comp, halfVec));
             specular = pow(specular, 7); // shiningnes 7
 
             float att=1.0/(attenuation.x + attenuation.y*distance + attenuation.z*distance*distance); 
+            
+            if(attenuationEn == 0) {
+                att = 1;
+            }
 
             if (textureS == 1) {
 		vertColor=vec3(1,1,1) * att * (min(ambient + diffusion,1)) + vec3(1,1,1) * specular;
             } else {
 		vertColor=vec3(inPosition,0) * att * (min(ambient + diffusion,1)) + vec3(1,1,1) * specular;
             }
+
+            if(reflectorEn == 1)  {
+                float spotEffect = dot(normalize(spotDirection),normalize(-lightDirection));
+                spotEffect = max(spotEffect,0);
+
+                if (acos(spotEffect) <= radians(spotCutOff)) {
+                    vertColor = vec3(0.0,0.0,0.0);
+                }
+            } 
         }
 } 
